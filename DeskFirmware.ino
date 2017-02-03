@@ -11,10 +11,10 @@
 Adafruit_NeoPixel strip = Adafruit_NeoPixel(60, PIN, NEO_GRB + NEO_KHZ800);
 
 enum LightStates {
-  LSCycling = 0,
-  LSStaticLow = 1,
-  LSStaticMedium = 2,
-  LSStaticHigh = 3,
+  LSCycling,
+  LSStaticLow,
+  LSStaticMedium,
+  LSStaticHigh,
   LSSentinal
 };
 
@@ -29,7 +29,7 @@ void setup() {
   // Read in, then bump eeprom value. Lets us cycle states by resetting
   // Should survive ~100,000 restarts according to datasheet
   lights_state = EEPROM.read(LIGHT_STATE_ADDRESS) % LSSentinal;
-  EEPROM.write(LIGHT_STATE_ADDRESS, lights_state + 1);
+  EEPROM.write(LIGHT_STATE_ADDRESS, lights_state);
 
   // For now, most states don't require a full loop, so put AVR to sleep
   //set_sleep_mode(SLEEP_MODE_PWR_DOWN);
@@ -42,31 +42,44 @@ void loop() {
       rainbowCycle(20);
       break;
     case LSStaticLow:
-      staticLights(3);
+      staticLights(strip.Color(10, 10, 10));
       break;
     case LSStaticMedium:
-        staticLights(2);
-        break;
+      staticLights(strip.Color(127, 127, 127));
+      break;
     case LSStaticHigh:
-        staticLights(1);
-        break;
+      staticLights(strip.Color(255, 255, 255));
+      break;
   }
+
+  if (Serial.available() > 0) {
+    int value = (Serial.read() - '1') % LSSentinal;
+
+    // Skip right out if we don't want the value
+    if (value < 0) return;
+
+    lights_state = value;
+    EEPROM.write(LIGHT_STATE_ADDRESS, lights_state);
+    Serial.print("Wrote new brightness: ");
+    Serial.println(lights_state);
+    delay(500);
+  }
+
+  delay(500);
 
   Serial.print("State:");
   Serial.println(lights_state);
 }
 
 
-void staticLights(unsigned char brightness) {
+void staticLights(uint32_t color) {
   for(int i = 0; i< strip.numPixels(); i++) {
-    strip.setPixelColor(i, strip.Color(255 / brightness, 255 / brightness, 255 / brightness));
+    strip.setPixelColor(i, color);
   }  
   strip.show();
 
   //sleep_mode();
   //sleep_disable(); // Never gets here until interrupt
-
-  delay(1000);
 }
 
 // Slightly different, this makes the rainbow equally distributed throughout

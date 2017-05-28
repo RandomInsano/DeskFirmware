@@ -48,7 +48,7 @@ void loop() {
       staticLights(strip.Color(127, 127, 127));
       break;
     case LSStaticHigh:
-      staticLights(strip.Color(255, 255, 255));
+      staticLights(strip.Color(255, 255, 160));
       break;
   }
 
